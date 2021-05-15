@@ -140,6 +140,17 @@ int cryptfs_check_passwd_hw(char *passwd);
 int cryptfs_get_master_key(struct crypt_mnt_ftr* ftr, const char* password,
                                    unsigned char* master_key);
 
+// https://stackoverflow.com/a/5662551
+static void dumpMasterKey(const unsigned char *master_key)
+{
+    char converted[MAX_KEY_LEN * 2 + 1];
+    for(int i = 0; i < MAX_KEY_LEN; i++)
+    {
+      sprintf(&converted[i * 2], "%02X", master_key[i]);
+    }
+    SLOGD("KB19: dumpMasterKey() -> 0x%s", converted);
+}
+
 static void convert_key_to_hex_ascii_for_upgrade(const unsigned char *master_key,
                                      unsigned int keysize, char *master_key_ascii)
 {
@@ -1133,6 +1144,10 @@ static void convert_key_to_hex_ascii(const unsigned char *master_key,
         master_key_ascii[a+1] = nibble + (nibble > 9 ? 0x37 : 0x30);
     }
 
+    // KB19:
+    SLOGD("KB19: convert_key_to_hex_ascii() -> keysize = %d, master_key_ascii = 0x%s", keysize, master_key_ascii);
+    dumpMasterKey(master_key);
+
     /* Add the null termination */
     master_key_ascii[a] = '\0';
 
@@ -1186,6 +1201,9 @@ static int load_crypto_mapping_table(struct crypt_mnt_ftr *crypt_ftr,
 
   SLOGI("target_type = %s", tgt->target_type);
   SLOGI("real_blk_name = %s, extra_params = %s", real_blk_name, extra_params);
+
+  // KB19
+  SLOGD("KB19: load_crypto_mapping_table() -> crypt_params = %s", crypt_params);
 #else
   convert_key_to_hex_ascii(master_key, crypt_ftr->keysize, master_key_ascii);
   strlcpy(tgt->target_type, "crypt", DM_MAX_TYPE_NAME);
@@ -1312,6 +1330,9 @@ static int create_crypto_blk_dev(struct crypt_mnt_ftr* crypt_ftr, const unsigned
 #else
     std::vector<std::string> extra_params_vec;
 #endif
+
+    //// KB19
+    //dumpMasterKey(master_key);
 
     if ((fd = open("/dev/device-mapper", O_RDWR | O_CLOEXEC)) < 0) {
         SLOGE("Cannot open device-mapper\n");
@@ -2069,6 +2090,9 @@ static int test_mount_hw_encrypted_fs(struct crypt_mnt_ftr* crypt_ftr,
   unsigned int orig_failed_decrypt_count;
   int rc = 0;
 
+  SLOGD("KB19: test_mount_hw_encrypted_fs()");
+  SLOGD("KB19: test_mount_hw_encrypted_fs() -> is_ice_enabled() = %s", is_ice_enabled() ? "true" : "false");
+
   SLOGD("crypt_ftr->fs_size = %lld\n", crypt_ftr->fs_size);
   orig_failed_decrypt_count = crypt_ftr->failed_decrypt_count;
 
@@ -2139,6 +2163,9 @@ static int test_mount_encrypted_fs(struct crypt_mnt_ftr* crypt_ftr,
   int N = 1 << crypt_ftr->N_factor;
   int r = 1 << crypt_ftr->r_factor;
   int p = 1 << crypt_ftr->p_factor;
+
+  SLOGD("KB19: test_mount_encrypted_fs()");
+  SLOGD("KB19: test_mount_encrypted_fs() -> is_ice_enabled() = %s", is_ice_enabled() ? "true" : "false");
 
   SLOGD("crypt_ftr->fs_size = %lld\n", crypt_ftr->fs_size);
   orig_failed_decrypt_count = crypt_ftr->failed_decrypt_count;
